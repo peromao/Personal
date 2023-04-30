@@ -55,6 +55,7 @@ public class Solver {
         int value = 0;
         int weight = 0;
         int[] taken = new int[items];
+        int estimativa = 0;
 
         HashMap<Integer, double[]> valuesDict = new HashMap<Integer, double[]>();
 
@@ -65,7 +66,7 @@ public class Solver {
             values[i] = Integer.parseInt(parts[0]);
             weights[i] = Integer.parseInt(parts[1]);
 
-            valuesDict.put(i, new double[]{values[i], weights[i], values[i] / weights[i]});
+            valuesDict.put(i, new double[]{values[i], weights[i], (float) values[i] / weights[i]});
         }
 
         List<Map.Entry<Integer, double[]>> list = new ArrayList<Map.Entry<Integer, double[]>>(valuesDict.entrySet());
@@ -76,7 +77,7 @@ public class Solver {
                 double[] arr2 = o2.getValue();
                 double last1 = arr1[arr1.length - 1];
                 double last2 = arr2[arr2.length - 1];
-                return Double.compare(last1, last2);
+                return Double.compare(last2, last1);
             }
         });
 
@@ -85,16 +86,43 @@ public class Solver {
             sortedMap.put(entry.getKey(), entry.getValue());
         }
 
-        //while(weight != capacity){
-          //  sortedMap.get()
-        //}
+        ///////////////
 
-        System.out.println(sortedMap);
 
+
+        /*
+        for (Integer key : sortedMap.keySet()) {
+            if(weight + sortedMap.get(key)[1] <= capacity){
+                estimativa += sortedMap.get(key)[0];
+                weight += sortedMap.get(key)[1];
+            } else if (weight != capacity) {
+                int diference = capacity - weight;
+
+                double percent = (double) diference/sortedMap.get(key)[1];
+
+                weight = capacity;
+
+                estimativa += sortedMap.get(key)[0] * percent;
+            }
+        }
+
+        weight = 0;
+         */
+
+        for (Integer key : sortedMap.keySet()) {
+            if(weight + sortedMap.get(key)[1] <= capacity){
+                value += sortedMap.get(key)[0];
+                weight += sortedMap.get(key)[1];
+                taken[key] = 1;
+            } else {
+                taken[key] = 0;
+            }
+        }
 
         // a trivial greedy algorithm for filling the knapsack
         // it takes items in-order until the knapsack is full
 
+        /*
         for(int i=0; i < items; i++){
             if(weight + weights[i] <= capacity){
                 taken[i] = 1;
@@ -104,6 +132,7 @@ public class Solver {
                 taken[i] = 0;
             }
         }
+         */
         
         // prepare the solution in the specified output format
         System.out.println(value+" 0");
