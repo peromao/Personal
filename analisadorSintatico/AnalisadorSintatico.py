@@ -49,7 +49,7 @@ class AnalisadorSintatico:
 
 		OBS: Não é necessário modificar este método.
 		"""
-		# print(f'  comparar: {self.tokenCorrente.tipo} {self.tokenCorrente.valor} {tipoEsperado}')  # remova o comentário se desejar visualizar as chamadas deste método. Pode ajudar na depuração
+		print(f'  comparar: {self.tokenCorrente.tipo} {self.tokenCorrente.valor} {tipoEsperado}')  # remova o comentário se desejar visualizar as chamadas deste método. Pode ajudar na depuração
 		tokenRetorno = self.tokenCorrente
 		if self.tokenCorrente.tipo == tipoEsperado.upper():
 			self.proximoToken()
@@ -65,7 +65,7 @@ class AnalisadorSintatico:
 
 		Ao implementar a árvore sintática, deve retornar o resultado do método alg().
 		"""
-		self.alg()
+		return self.alg()
 
 
 	def alg(self):
@@ -108,7 +108,7 @@ class AnalisadorSintatico:
 
 		Dica: este método pode fazer uma chamada recursiva para si mesmo. Pense em como usar isso para ligar os nós da árvore sintática!
 		"""
-		if self.tokenCorrente.tipo == "TYPE":
+		if self.tokenCorrente.tipo != "LBLOCK":
 			self.varDeclaration()
 			self.varDeclarationList()
 
@@ -234,7 +234,9 @@ class AnalisadorSintatico:
 		O valor do atributo op deve ser "ifStatement".
 		"""
 		self.comparar("IF")
+		print(self.tokenCorrente)
 		self.expression()
+		print(self.tokenCorrente)
 		self.block()
 		if self.tokenCorrente.tipo == "ELSE":
 			self.comparar("ELSE")
@@ -292,6 +294,8 @@ class AnalisadorSintatico:
 
 		Se o token corrente não for um OPSUM, retorna o parâmetro esq.
 		"""
+		if self.tokenCorrente.tipo != "OPSUM":
+			return esq
 		self.comparar("OPSUM")
 		self.multiplicativeTerm()
 		self.sumExpression2()
@@ -329,8 +333,9 @@ class AnalisadorSintatico:
 
 		Se o token corrente não for um OPMUL, retorna o parâmetro esq.
 		"""
-		if self.tokenCorrente.tipo == "OPMUL":
-			self.comparar("OPMUL")
+		if self.tokenCorrente.tipo != "OPMUL":
+			return esq
+		self.comparar("OPMUL")
 		self.powerTerm()
 		self.multiplicativeTerm2()
 
@@ -389,20 +394,23 @@ class AnalisadorSintatico:
 		
 		Em seguida, faça com que o método retorne o NoInterno criado.
 		"""
-		if self.tokenCorrente.tipo == "ID":
-			self.comparar("ID")
+		if self.tokenCorrente.tipo == "OPSUM":
+			self.comparar("OPSUM")
+			self.factor()
 		elif self.tokenCorrente.tipo == "NUMBER":
 			self.comparar("NUMBER")
+		elif self.tokenCorrente.tipo == "BOOLEAN":
+			self.comparar("BOOLEAN")
+		elif self.tokenCorrente.tipo == "ID":
+			self.comparar("ID")
 		elif self.tokenCorrente.tipo == "LPAR":
 			self.comparar("LPAR")
 			self.expression()
 			self.comparar("RPAR")
-		elif self.tokenCorrente.tipo == "OPSUM":
-			self.comparar("OPSUM")
-			self.factor()
-
+		
+			
 if __name__ == '__main__':
-	tokens = [Token("ALG", "alg", 1), Token("ID", "exemplo_print", 1), Token("VAR", "var", 2), Token("LBLOCK", "{", 3), Token("OUT", "out", 4), Token("LPAR", "(", 4),
-		Token("NUMBER", "1234", 4), Token("RPAR", ")", 4), Token("SEMICOLON", ";", 4), Token("RBLOCK", "}", 5), Token("EOF", "EOF", 5)]
+	tokens = [Token("ALG", "alg", 1), Token("ID", "exemplo_if", 1), Token("VAR", "var", 2), Token("LBLOCK", "{", 3), Token("IF", "if", 4), Token("BOOLEAN", "true", 4),
+		Token("LBLOCK", "{", 4), Token("RBLOCK", "}", 6), Token("ELSE", "else", 6), Token("LBLOCK", "{", 6), Token("RBLOCK", "}", 8), Token("RBLOCK", "}", 9), Token("EOF", "EOF", 9)]
 	sintatico = AnalisadorSintatico(tokens)
 	sintatico.analisar()
