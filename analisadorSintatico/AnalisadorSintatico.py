@@ -76,9 +76,10 @@ class AnalisadorSintatico:
 		O valor do atributo op deve ser "alg".
 		"""
 		self.comparar("ALG")
-		self.comparar("ID")
-		self.declarations()
-		self.block()
+		id = self.comparar("ID")
+		return NoInterno("alg", id=NoFolha("id", id.valor, id.linha),
+				    declarations=self.declarations(), 
+					block=self.block())
 	
 
 	def declarations(self):
@@ -93,10 +94,13 @@ class AnalisadorSintatico:
 			self.comparar("IMPLICIT")
 			self.comparar("MOD")
 			self.comparar("LPAR")
+			mod = NoFolha(op="number", valor=self.tokenCorrente.valor, linha=self.tokenCorrente.linha)
 			self.comparar("NUMBER")
 			self.comparar("RPAR")
+		else:
+			mod = NoFolha(op="number", valor=0, linha=0)
 		self.comparar("VAR")
-		self.varDeclarationList()
+		return NoInterno(op="declarations", mod=mod, varDeclarationList=self.varDeclarationList())
 	
 
 	def varDeclarationList(self):
@@ -109,9 +113,9 @@ class AnalisadorSintatico:
 		Dica: este método pode fazer uma chamada recursiva para si mesmo. Pense em como usar isso para ligar os nós da árvore sintática!
 		"""
 		if self.tokenCorrente.tipo != "LBLOCK":
-			self.varDeclaration()
-			self.varDeclarationList()
-
+			return NoInterno(op="varDeclarationList",
+					varDeclaration=self.varDeclaration(),
+					prox=self.varDeclarationList())
 
 	def varDeclaration(self):
 		"""
@@ -120,9 +124,11 @@ class AnalisadorSintatico:
 		Ao implementar a árvore sintática, deve retornar um NoInterno com os seguintes parâmetros nomeados: type (um NoFolha com op igual a "type"), identifierList.
 		O valor do atributo op deve ser "varDeclaration".
 		"""
+		noType = NoFolha(op="type", valor=self.tokenCorrente.valor, linha=self.tokenCorrente.linha)
 		self.comparar("TYPE")
-		self.identifierList()
+		noDeclaration = NoInterno(op="varDeclaration", type=noType, idetifierList=self.identifierList())
 		self.comparar("SEMICOLON")
+		return noDeclaration
 
 
 	def identifierList(self):
@@ -134,11 +140,13 @@ class AnalisadorSintatico:
 
 		Dica: este método pode fazer uma chamada recursiva para si mesmo. Pense em como usar isso para ligar os nós da árvore sintática!
 		"""
+		noId = NoFolha(op="id", valor=self.tokenCorrente.valor, linha=self.tokenCorrente.linha)
 		self.comparar("ID")
 		if self.tokenCorrente.tipo == "COMMA":
 			self.comparar("COMMA")
-			self.identifierList()
-
+			return NoInterno(op="identifierList", id=noId, prox=self.identifierList())
+		else:
+			return NoInterno(op="identifierList", id=noId, prox=None)
 
 	def block(self):
 		"""
@@ -148,8 +156,9 @@ class AnalisadorSintatico:
 		O valor do atributo op deve ser "block".
 		"""
 		self.comparar("LBLOCK")
-		self.statementList()
+		noBlock = NoInterno(op="block",statementList=self.statementList())
 		self.comparar("RBLOCK")
+		return noBlock
 	
 
 	def statementList(self):
@@ -162,8 +171,7 @@ class AnalisadorSintatico:
 		Dica: este método pode fazer uma chamada recursiva para si mesmo. Pense em como usar isso para ligar os nós da árvore sintática!
 		"""
 		if self.tokenCorrente.tipo == "OUT" or self.tokenCorrente.tipo == "IF" or self.tokenCorrente.tipo == "ID":
-			self.statement()
-			self.statementList()
+			return NoInterno(op="statementList", statement=self.statement(), prox=self.statementList())
 	
 
 	def statement(self):
@@ -175,11 +183,11 @@ class AnalisadorSintatico:
 		outStatement(), ifStatement() ou assignStatement().
 		"""
 		if self.tokenCorrente.tipo == "OUT":
-			self.outStatement()
+			return self.outStatement()
 		elif self.tokenCorrente.tipo == "IF":
-			self.ifStatement()
+			return self.ifStatement()
 		else:
-			self.assignStatement()
+			return self.assignStatement()
 
 
 
@@ -192,13 +200,15 @@ class AnalisadorSintatico:
 			- caso contrário: id (um NoFolha com op igual a "id", contendo a variável que está recebendo o valor da atribuição), expression;
 		O valor do atributo op deste NoInterno deve ser "assignStatement".
 		"""
+		noId = NoFolha(op="id", valor=self.tokenCorrente.valor, linha=self.tokenCorrente.linha)
 		self.comparar("ID")
 		self.comparar("ASSIGN")
 		if self.tokenCorrente.tipo == "IN":
-			self.inStatement()
+			noRetorno = NoInterno(op="assignStatement", id=noId, inStatement=self.inStatement())
 		else:
-			self.expression()
+			noRetorno = NoInterno(op="assignStatement", id=noId, inStatement=self.expression())
 		self.comparar("SEMICOLON")
+		return noRetorno
 	
 
 	def inStatement(self):
@@ -207,9 +217,11 @@ class AnalisadorSintatico:
 
 		Ao implementar a árvore sintática, deve retornar um NoFolha com op igual a "in" e o valor igual a "in".
 		"""
+		noIn = NoFolha(op="in", valor=self.tokenCorrente.valor, linha=self.tokenCorrente.linha)
 		self.comparar("IN")
 		self.comparar("LPAR")
 		self.comparar("RPAR")
+		return noIn
 	
 
 	def outStatement(self):
@@ -221,9 +233,10 @@ class AnalisadorSintatico:
 		"""
 		self.comparar("OUT")
 		self.comparar("LPAR")
-		self.expression()
+		noOut = NoInterno(op="outStatement", expression=self.expression())
 		self.comparar("RPAR")
 		self.comparar("SEMICOLON")
+		return noOut
 	
 
 	def ifStatement(self):
@@ -234,13 +247,13 @@ class AnalisadorSintatico:
 		O valor do atributo op deve ser "ifStatement".
 		"""
 		self.comparar("IF")
-		print(self.tokenCorrente)
-		self.expression()
-		print(self.tokenCorrente)
-		self.block()
+		noExpression = self.expression()
+		noIf = self.block()
 		if self.tokenCorrente.tipo == "ELSE":
 			self.comparar("ELSE")
-			self.block()
+			return NoInterno(op="ifStatement", expression=noExpression, blockIf=noIf, blockElse=self.block())
+		else:
+			return NoInterno(op="ifStatement", expression=self.expression(), blockIf=self.block(), blockElse=None)
 
 
 	def expression(self):
@@ -256,12 +269,12 @@ class AnalisadorSintatico:
 		Dica: a partir deste ponto, todos os nós do tipo NoInterno terão os atributos nomeados esq e dir, ou seja, podemos considerar que a partir daqui
 		teremos uma árvore binária!
 		"""
-		self.sumExpression()
 		if self.tokenCorrente.tipo == "OPREL":
+			NoInterno(op=self.tokenCorrente.valor, esq=self.sumExpression(), dir=self.sumExpression())
 			self.comparar("OPREL")
-			self.sumExpression()
+		else:
+			NoInterno(op=None, esq=self.sumExpression(), dir=self.sumExpression()) ##dir = None?
 	
-
 	def sumExpression(self):
 		"""
 		Método que analisa a variável <sumExpression> da linguagem.
@@ -413,4 +426,4 @@ if __name__ == '__main__':
 	tokens = [Token("ALG", "alg", 1), Token("ID", "exemplo_if", 1), Token("VAR", "var", 2), Token("LBLOCK", "{", 3), Token("IF", "if", 4), Token("BOOLEAN", "true", 4),
 		Token("LBLOCK", "{", 4), Token("RBLOCK", "}", 6), Token("ELSE", "else", 6), Token("LBLOCK", "{", 6), Token("RBLOCK", "}", 8), Token("RBLOCK", "}", 9), Token("EOF", "EOF", 9)]
 	sintatico = AnalisadorSintatico(tokens)
-	sintatico.analisar()
+	print(sintatico.analisar())
