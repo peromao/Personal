@@ -271,11 +271,12 @@ class AnalisadorSintatico:
 		Dica: a partir deste ponto, todos os nós do tipo NoInterno terão os atributos nomeados esq e dir, ou seja, podemos considerar que a partir daqui
 		teremos uma árvore binária!
 		"""
+		esq=self.sumExpression()
 		if self.tokenCorrente.tipo == "OPREL":
 			oprel = self.comparar("OPREL")
-			NoInterno(op="expression" ,oper=oprel.valor, esq=self.sumExpression(), dir=self.sumExpression())
+			NoInterno(op="expression" ,oper=oprel.valor, esq=esq, dir=self.sumExpression())
 		else:
-			NoInterno(op="expression", oper=None, esq=self.sumExpression(), dir=None) 
+			NoInterno(op="expression", oper=None, esq=esq, dir=None) 
 	
 	def sumExpression(self):
 		"""
