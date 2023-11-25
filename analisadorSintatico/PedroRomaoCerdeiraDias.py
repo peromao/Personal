@@ -413,24 +413,24 @@ class AnalisadorSintatico:
 		
 		Em seguida, faça com que o método retorne o NoInterno criado.
 		"""
-		sinal = '+'
-
 		if self.tokenCorrente.tipo == "OPSUM":
 			sinal = self.comparar("OPSUM").valor
 			factor = self.factor()
+			return NoInterno(op="factor", sinal=sinal, esq=None, dir=None, factor=factor)
 		elif self.tokenCorrente.tipo == "NUMBER":
 			num = self.comparar("NUMBER")
 			factor = NoFolha(op='num', valor=num.valor, linha=self.tokenCorrente.linha)
+			return NoInterno(op="factor", sinal="+", esq=None, dir=None, factor=factor)
 		elif self.tokenCorrente.tipo == "BOOLEAN":
 			bool = self.comparar("BOOLEAN")
 			factor = NoFolha(op='log', valor=bool.valor, linha=self.tokenCorrente.linha)
+			return NoInterno(op="factor", sinal="+", esq=None, dir=None, factor=factor)
 		elif self.tokenCorrente.tipo == "ID":
 			id = self.comparar("ID")
 			factor = NoFolha(op='id', valor=id.valor, linha=self.tokenCorrente.linha)
+			return NoInterno(op="factor", sinal="+", esq=None, dir=None, factor=factor)
 		elif self.tokenCorrente.tipo == "LPAR":
 			self.comparar("LPAR")
 			factor = self.expression()
 			self.comparar("RPAR")
-
-		return NoInterno(op="factor", sinal=sinal, esq=None, dir=None, factor=factor)
 	
