@@ -126,7 +126,7 @@ class AnalisadorSintatico:
 		"""
 		noType = NoFolha(op="type", valor=self.tokenCorrente.valor, linha=self.tokenCorrente.linha)
 		self.comparar("TYPE")
-		noDeclaration = NoInterno(op="varDeclaration", type=noType, idetifierList=self.identifierList())
+		noDeclaration = NoInterno(op="varDeclaration", type=noType, identifierList=self.identifierList())
 		self.comparar("SEMICOLON")
 		return noDeclaration
 
@@ -207,7 +207,6 @@ class AnalisadorSintatico:
 			noRetorno = NoInterno(op="assignStatement", id=noId, inStatement=self.inStatement())
 		else:
 			noRetorno = NoInterno(op="assignStatement", id=noId, inStatement=self.expression())
-		print("//////////////////////////////q")
 		
 		self.comparar("SEMICOLON")
 		return noRetorno
@@ -274,9 +273,9 @@ class AnalisadorSintatico:
 		esq=self.sumExpression()
 		if self.tokenCorrente.tipo == "OPREL":
 			oprel = self.comparar("OPREL")
-			NoInterno(op="expression" ,oper=oprel.valor, esq=esq, dir=self.sumExpression())
+			return NoInterno(op="expression" ,oper=oprel.valor, esq=esq, dir=self.sumExpression())
 		else:
-			NoInterno(op="expression", oper=None, esq=esq, dir=None) 
+			return NoInterno(op="expression", oper=None, esq=esq, dir=None) 
 	
 	def sumExpression(self):
 		"""
@@ -414,32 +413,39 @@ class AnalisadorSintatico:
 		
 		Em seguida, faça com que o método retorne o NoInterno criado.
 		"""
+		sinal = '+'
+
 		if self.tokenCorrente.tipo == "OPSUM":
-			self.comparar("OPSUM")
-			self.factor()
+			sinal = self.comparar("OPSUM").valor
+			factor = self.factor()
 		elif self.tokenCorrente.tipo == "NUMBER":
-			self.comparar("NUMBER")
+			valor = self.comparar("NUMBER").valor
+			factor = NoFolha(op='num', valor=valor, linha=self.tokenCorrente.linha)
 		elif self.tokenCorrente.tipo == "BOOLEAN":
-			self.comparar("BOOLEAN")
+			valor = self.comparar("BOOLEAN").valor
+			factor = NoFolha(op='log', valor=valor, linha=self.tokenCorrente.linha)
 		elif self.tokenCorrente.tipo == "ID":
-			self.comparar("ID")
+			valor = self.comparar("ID").valor
+			factor = NoFolha(op='id', valor=valor, linha=self.tokenCorrente.linha)
 		elif self.tokenCorrente.tipo == "LPAR":
 			self.comparar("LPAR")
-			self.expression()
+			factor = self.expression()
 			self.comparar("RPAR")
+
+		return NoInterno(op="factor", sinal=sinal, esq=None, dir=None, factor=factor)
 		
 			
 if __name__ == '__main__':
-	tokens = [Token("ALG", "alg", 1), Token("ID", "relogio", 1), Token("IMPLICIT", "implicit", 2), Token("MOD", "mod", 2), Token("LPAR", "(", 2), Token("NUMBER", "24", 2),
-		Token("RPAR", ")", 2), Token("VAR", "var", 3), Token("TYPE", "num", 4), Token("ID", "hora1", 4), Token("SEMICOLON", ";", 4), Token("TYPE", "num", 5),
-		Token("ID", "hora2", 5), Token("COMMA", ",", 5), Token("ID", "hora3", 5), Token("SEMICOLON", ";", 5), Token("TYPE", "log", 6), Token("ID", "virou", 6),
-		Token("SEMICOLON", ";", 6), Token("LBLOCK", "{", 7), Token("ID", "hora1", 8), Token("ASSIGN", "=", 8), Token("NUMBER", "15", 8), Token("SEMICOLON", ";", 8),
-		Token("ID", "hora2", 9), Token("ASSIGN", "=", 9), Token("IN", "in", 9), Token("LPAR", "(", 9), Token("RPAR", ")", 9), Token("SEMICOLON", ";", 9),
-		Token("ID", "hora3", 10), Token("ASSIGN", "=", 10), Token("ID", "hora1", 10), Token("OPSUM", "+", 10), Token("ID", "hora2", 10), Token("SEMICOLON", ";", 10),
-		Token("ID", "virou", 11), Token("ASSIGN", "=", 11), Token("ID", "hora3", 11), Token("OPREL", "<=", 11), Token("NUMBER", "15", 11), Token("SEMICOLON", ";", 11),
-		Token("IF", "if", 12), Token("ID", "virou", 12), Token("LBLOCK", "{", 12), Token("OUT", "out", 13), Token("LPAR", "(", 13), Token("ID", "virou", 13),
-		Token("RPAR", ")", 13), Token("SEMICOLON", ";", 13), Token("OUT", "out", 14), Token("LPAR", "(", 14), Token("ID", "hora3", 14), Token("RPAR", ")", 14),
-		Token("SEMICOLON", ";", 14), Token("RBLOCK", "}", 15), Token("ELSE", "else", 15), Token("LBLOCK", "{", 15), Token("OUT", "out", 16), Token("LPAR", "(", 16),
-		Token("ID", "hora3", 16), Token("RPAR", ")", 16), Token("SEMICOLON", ";", 16), Token("RBLOCK", "}", 17), Token("RBLOCK", "}", 18), Token("EOF", "EOF", 18)]
+	tokens = [Token("ALG", "alg", 1), Token("ID", "testa_expressoes", 1), Token("VAR", "var", 2), Token("TYPE", "num", 3), Token("ID", "x", 3), Token("COMMA", ",", 3),
+		Token("ID", "y", 3), Token("SEMICOLON", ";", 3), Token("LBLOCK", "{", 4), Token("ID", "x", 5), Token("ASSIGN", "=", 5), Token("LPAR", "(", 5), Token("NUMBER", "16", 5),
+		Token("OPMUL", "#", 5), Token("NUMBER", "10", 5), Token("RPAR", ")", 5), Token("OPSUM", "+", 5), Token("NUMBER", "3", 5), Token("OPMUL", ".", 5), Token("LPAR", "(", 5),
+		Token("NUMBER", "27", 5), Token("OPMUL", ":", 5), Token("NUMBER", "9", 5), Token("RPAR", ")", 5), Token("SEMICOLON", ";", 5), Token("ID", "y", 6), Token("ASSIGN", "=", 6),
+		Token("NUMBER", "2", 6), Token("OPPOW", "^", 6), Token("NUMBER", "3", 6), Token("OPPOW", "^", 6), Token("NUMBER", "4", 6), Token("OPSUM", "-", 6), Token("ID", "x", 6),
+		Token("SEMICOLON", ";", 6), Token("IF", "if", 7), Token("ID", "x", 7), Token("OPREL", ">", 7), Token("ID", "y", 7), Token("LBLOCK", "{", 7), Token("OUT", "out", 8),
+		Token("LPAR", "(", 8), Token("ID", "x", 8), Token("RPAR", ")", 8), Token("SEMICOLON", ";", 8), Token("RBLOCK", "}", 9), Token("ELSE", "else", 9), Token("LBLOCK", "{", 9),
+		Token("IF", "if", 10), Token("ID", "x", 10), Token("OPREL", "==", 10), Token("ID", "y", 10), Token("LBLOCK", "{", 10), Token("OUT", "out", 11), Token("LPAR", "(", 11),
+		Token("ID", "x", 11), Token("RPAR", ")", 11), Token("SEMICOLON", ";", 11), Token("OUT", "out", 12), Token("LPAR", "(", 12), Token("ID", "y", 12), Token("RPAR", ")", 12),
+		Token("SEMICOLON", ";", 12), Token("RBLOCK", "}", 13), Token("ELSE", "else", 13), Token("LBLOCK", "{", 13), Token("OUT", "out", 14), Token("LPAR", "(", 14), Token("ID", "y", 14),
+		Token("RPAR", ")", 14), Token("SEMICOLON", ";", 14), Token("RBLOCK", "}", 15), Token("RBLOCK", "}", 16), Token("RBLOCK", "}", 17), Token("EOF", "EOF", 17)]
 	sintatico = AnalisadorSintatico(tokens)
 	print(sintatico.analisar())
