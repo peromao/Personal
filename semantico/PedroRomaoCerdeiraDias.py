@@ -63,7 +63,8 @@ class AnalisadorSemantico:
 		while idList != None:
 			currId = idList.d.get("id").valor
 			if currId in self.tabela:
-				raise SemanticException(f"O identificador {currId} na linha {noVarDeclaration.d.get("identifierList").d.get("id").linha} foi declarado anteriormente") 
+				linha = noVarDeclaration.d.get("identifierList").d.get("id").linha
+				raise SemanticException(f'O identificador "{currId}" na linha {linha} foi declarado anteriormente') 
 			else:
 				self.tabela[currId] = NoTabela(valor=None, tipo=tipo)
 				idList = idList.d.get("prox")
@@ -101,12 +102,13 @@ class AnalisadorSemantico:
 			if currStatement.op == "assignStatement":
 				id = currStatement.d.get("id").valor
 				if id not in self.tabela:
-					raise SemanticException(f"O identificador {id} na linha {currStatement.d.get("id").linha} não foi declarado anteriormente") 
+					linha = currStatement.d.get("id").linha
+					raise SemanticException(f'O identificador "{id}" na linha {linha} não foi declarado') 
 				if currStatement.d.get("expression") != None:
 					expReturn = self.visitarExpression(currStatement.d.get("expression"))
-					print(expReturn)
 					if expReturn.tipo != self.tabela[id].tipo:
-						raise SemanticException(f"O identificador {id} na linha {currStatement.d.get("id").linha} não pode receber uma expressão do tipo expReturn.tipo")
+						linha = currStatement.d.get("id").linha
+						raise SemanticException(f'O identificador "{id}" na linha {linha} não pode receber uma expressão do tipo "{expReturn.tipo}"')
 				self.tabela[id].valor = expReturn.valor
 			if currStatement.op == "outStatement":
 				self.visitarExpression(currStatement.d.get("expression"))
@@ -124,12 +126,13 @@ class AnalisadorSemantico:
 		Caso a "expression" possua um operador (nó "oper"), chama visitarSumExpression() passando o nó "dir" como parâmetro. Neste caso, este método
 		deve retornar um NoTabela() cujo tipo obrigatoriamente deve ser "log".
 		"""
+		print(noExpression)
 		esqReturn = self.visitarSumExpression(noExpression.d.get("esq"))
 		if noExpression.d.get("oper") == None:
 			return esqReturn
 		else:
 			dirReturn = self.visitarSumExpression(noExpression.d.get("dir"))
-			return NoTabela(tipo="log", valor=None)
+			return NoTabela(tipo="log", valor=dirReturn)
 	
 
 	def visitarSumExpression(self, no):
@@ -143,7 +146,7 @@ class AnalisadorSemantico:
 		por exemplo), e o tipo de dado deste valor ("log" ou "num").
 		"""
 		if no != None:  # enquanto não chegar em um nó folha, continua o percurso (continue com a recursão)
-			print(no)
+			# print(no)
 			val1 = self.visitarSumExpression(no.get("esq"))  # visita a subárvore esquerda
 			val2 = self.visitarSumExpression(no.get("dir"))  # visita a subárvore direita
 			# Processa a raiz (if/elifs abaixo):
@@ -162,8 +165,19 @@ class AnalisadorSemantico:
 
 				Em seguida, se val1 não for nulo retorne-o. Caso contrário, retorne val2.
 				"""
-				print(val1)
-				pass
+				if val1.tipo != val2.tipo:
+					raise SemanticException(f'Tipos incompatíveis: "{no.get("esq").d.get("factor").valor}" e "{no.get("dir").d.get("factor").valor}"')
+				elif no.d.get("oper") == ":" and val2.tipo == "num" and int(val2.valor) == 0:
+					print("oi")
+					linha = val2.d.get("linha")
+					raise SemanticException(f"Divisão por zero na linha {linha}")
+				elif no.d.get("oper") == "^" and val2.tipo == "num" and int(val2.valor) < 0:
+					linha = val2.d.get("linha")
+					raise SemanticException(f"Expoente negativo na linha {linha}")
+				elif val1 != None:
+					return val1
+				else:
+					return val2
 				
 			elif no.op == "factor" and not no.get("expression"):
 				"""
@@ -181,11 +195,26 @@ class AnalisadorSemantico:
 				Se for um "num" (valor inteiro), obtenha o seu sinal. Se for negativo, retorne este valor (inteiro) com o sinal de "-" na frente. Além disso,
 				associe o tipo "num" ao NoTabela retornado.
 				"""
-				pass
+				noFolha = no.d.get("factor")
+				if noFolha.op == "id":
+					if noFolha.valor not in self.tabela:
+						raise SemanticException(f'O identificador "{noFolha.valor}" na linha {noFolha.linha} não foi declarado')
+					elif self.tabela[noFolha.valor].valor == None:
+						raise SemanticException(f'O identificador "{noFolha.valor}" na linha {noFolha.linha} não foi inicializado')
+					else:
+						return self.tabela[noFolha.valor]
+				elif noFolha.op == "log":
+					return NoTabela(valor=noFolha.valor, tipo="log")
+				elif noFolha.op == "num":
+					sinal = no.d.get("sinal")
+					valor = noFolha.valor
+					if sinal == "-":
+						valor = -1 * int(valor)
+					return NoTabela(valor=valor, tipo="num", linha=noFolha.linha)
 
 			elif no.op == "factor" and no.get("expression"):
 				return self.visitarExpression(no.get("expression"))
 			
-if __name__ == __name__:
-	semantico = AnalisadorSemantico(NoInterno(op="alg", id=NoFolha(op="id", valor="exemplo4", linha=1), declarations=NoInterno(op="declarations", mod=NoFolha(op="number", valor="0", linha=0), varDeclarationList=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="num", linha=3), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="a", linha=3), prox=NoInterno(op="identifierList", id=NoFolha(op="id", valor="b", linha=3), prox=None))), prox=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="log", linha=4), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="x", linha=4), prox=NoInterno(op="identifierList", id=NoFolha(op="id", valor="y", linha=4), prox=None))), prox=None))), block=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="a", linha=6), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="powerTerm", oper="^", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=6), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="5", linha=6), esq=None, dir=None)), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="b", linha=7), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="multiplicativeTerm", oper=":", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="a", linha=7), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="sumExpression", oper="+", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=7), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=7), esq=None, dir=None)), dir=None), esq=None, dir=None)), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="x", linha=8), expression=NoInterno(op="expression", oper="|", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="16", linha=8), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="b", linha=8), esq=None, dir=None))), prox=NoInterno(op="statementList", statement=NoInterno(op="ifStatement", expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="x", linha=9), esq=None, dir=None), dir=None), blockIf=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="outStatement", expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="a", linha=10), esq=None, dir=None), dir=None)), prox=None)), blockElse=None), prox=None)))))))
+if __name__ == '__main__':
+	semantico = AnalisadorSemantico(NoInterno(op="alg", id=NoFolha(op="id", valor="exemplo16", linha=1), declarations=NoInterno(op="declarations", mod=NoFolha(op="number", valor="0", linha=0), varDeclarationList=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="num", linha=3), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="i", linha=3), prox=NoInterno(op="identifierList", id=NoFolha(op="id", valor="j", linha=3), prox=None))), prox=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="log", linha=4), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="multiplo", linha=4), prox=None)), prox=None))), block=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="i", linha=6), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="powerTerm", oper="^", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="10", linha=6), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="3", linha=6), esq=None, dir=None)), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="j", linha=7), inStatement=NoFolha(op="in", valor="in", linha=7)), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="multiplo", linha=8), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="false", linha=8), esq=None, dir=None), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="ifStatement", expression=NoInterno(op="expression", oper="==", esq=NoInterno(op="multiplicativeTerm", oper="%", esq=NoInterno(op="factor", sinal="+", expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="multiplicativeTerm", oper=":", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="i", linha=9), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="0", linha=9), esq=None, dir=None)), dir=None), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="j", linha=9), esq=None, dir=None)), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="0", linha=9), esq=None, dir=None)), blockIf=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="multiplo", linha=10), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="true", linha=10), esq=None, dir=None), dir=None)), prox=None)), blockElse=None), prox=NoInterno(op="statementList", statement=NoInterno(op="outStatement", expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="multiplo", linha=12), esq=None, dir=None), dir=None)), prox=None))))))))
 	semantico.analisar()
