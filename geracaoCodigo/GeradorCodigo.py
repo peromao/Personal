@@ -101,35 +101,29 @@ class GeradorCodigo:
 
 			- um ifStatement: chama o método visitarifStatement(), passando o nó ifStatement como parâmetro.
 		"""
-		self.numTabs += 1
-		self.tabs += '\t'
-		
 		stList = noBlock.d.get("statementList")
 		while stList != None:
 			currSt = stList.d.get("statement")
 			if currSt.op == "assignStatement":
 				id = currSt.d.get("id").valor
 				if 'inStatement' in currSt.d.keys():
-					self.saida += f"{id} = int(input())\n"
+					self.saida += f"{self.tabs}{id} = int(input())\n"
 				else: 
 					dir = self.visitarExpression(currSt.d.get("expression"))
 					if self.mod != "":
-						self.saida += f"{id} = {dir} % {self.mod} \n"
+						self.saida += f"{self.tabs}{id} = {dir} % {self.mod} \n"
 					else:
-						self.saida += f"{id} = {dir}\n"
+						self.saida += f"{self.tabs}{id} = {dir}\n"
 					self.varNumSum = 0
 					self.varNumMul = 0
 					self.varNumPow = 0
 					self.varNumMinus = 0
 			elif currSt.op == "outStatement":
 				x = self.visitarExpression(currSt.d.get("expression"))
-				self.saida += f"print({x})\n"
+				self.saida += f"{self.tabs}print({x})\n"
 			elif currSt.op == "ifStatement":
 				self.visitarifStatement(currSt)
 			stList = stList.d.get("prox")
-		
-		tablist = list(self.tabs)
-		self.numTabs -= 1
 	
 
 	def visitarifStatement(self, noIfStatement):
@@ -147,11 +141,16 @@ class GeradorCodigo:
 		"""
 		x = self.visitarExpression(noIfStatement.d.get("expression"))
 		self.saida += f"if {x}:\n"
+		self.numTabs += 1
+		self.tabs += '\t'
 		self.visitarBlock(noIfStatement.d.get("blockIf"))
 		if noIfStatement.d.get("blockElse") != None:
 			self.saida += "else:\n"
 			self.visitarBlock(noIfStatement.d.get("blockElse"))
 
+		tablist = list(self.tabs)
+		tablist.pop()
+		self.tabs = "".join(tablist)
 		self.numTabs -= 1	
 
 	def visitarExpression(self, noExpression):
@@ -180,6 +179,7 @@ class GeradorCodigo:
 				self.saida += "_TEMP_VAR_REL = " + E + "!=" + D + "\n"
 				return "_TEMP_VAR_REL"
 			elif oper == "|":
+				print(self.saida)
 				a = D % E
 				if a == 0:
 					self.saida += "_TEMP_VAR_MOD = True"  + "\n"
@@ -294,5 +294,5 @@ class GeradorCodigo:
 					return self.visitarExpression(no.get("expression"))
 
 if __name__ == '__main__':
-	oi = GeradorCodigo(NoInterno(op="alg", id=NoFolha(op="id", valor="exemplo9", linha=1), declarations=NoInterno(op="declarations", mod=NoFolha(op="number", valor="0", linha=0), varDeclarationList=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="num", linha=3), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="mdc", linha=3), prox=None)), prox=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="log", linha=4), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="resultado", linha=4), prox=None)), prox=None))), block=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="mdc", linha=6), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="multiplicativeTerm", oper="#", esq=NoInterno(op="multiplicativeTerm", oper="#", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="126", linha=6), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="162", linha=6), esq=None, dir=None)), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="180", linha=6), esq=None, dir=None)), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="ifStatement", expression=NoInterno(op="expression", oper=">=", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="mdc", linha=7), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="18", linha=7), esq=None, dir=None)), blockIf=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="resultado", linha=8), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="true", linha=8), esq=None, dir=None), dir=None)), prox=None)), blockElse=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="resultado", linha=10), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="false", linha=10), esq=None, dir=None), dir=None)), prox=None))), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="mdc", linha=12), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="multiplicativeTerm", oper="#", esq=NoInterno(op="powerTerm", oper="^", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=12), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="7", linha=12), esq=None, dir=None)), dir=NoInterno(op="powerTerm", oper="^", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=12), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="8", linha=12), esq=None, dir=None))), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="mdc", linha=13), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="sumExpression", oper="+", esq=NoInterno(op="multiplicativeTerm", oper=".", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="1", linha=13), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=13), esq=None, dir=None)), dir=NoInterno(op="multiplicativeTerm", oper=".", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="3", linha=13), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="4", linha=13), esq=None, dir=None))), dir=None)), prox=None)))))))
+	oi = GeradorCodigo(NoInterno(op="alg", id=NoFolha(op="id", valor="exemplo14", linha=1), declarations=NoInterno(op="declarations", mod=NoFolha(op="number", valor="0", linha=0), varDeclarationList=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="num", linha=3), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="numero", linha=3), prox=None)), prox=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="log", linha=4), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="resultado", linha=4), prox=None)), prox=None))), block=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="numero", linha=6), inStatement=NoFolha(op="in", valor="in", linha=6)), prox=NoInterno(op="statementList", statement=NoInterno(op="ifStatement", expression=NoInterno(op="expression", oper="|", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=7), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="numero", linha=7), esq=None, dir=None)), blockIf=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="resultado", linha=8), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="true", linha=8), esq=None, dir=None), dir=None)), prox=None)), blockElse=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="resultado", linha=10), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="false", linha=10), esq=None, dir=None), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="numero", linha=11), inStatement=NoFolha(op="in", valor="in", linha=11)), prox=NoInterno(op="statementList", statement=NoInterno(op="ifStatement", expression=NoInterno(op="expression", oper="==", esq=NoInterno(op="multiplicativeTerm", oper="%", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="numero", linha=12), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=12), esq=None, dir=None)), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="0", linha=12), esq=None, dir=None)), blockIf=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="resultado", linha=13), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="true", linha=13), esq=None, dir=None), dir=None)), prox=None)), blockElse=None), prox=None))))), prox=None)))))
 	print(oi.gerarPython())
