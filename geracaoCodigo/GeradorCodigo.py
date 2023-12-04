@@ -4,6 +4,9 @@
 #from ClassesAuxiliares import NoInterno, NoFolha, NoTabela
 
 
+from ClassesAuxiliares import NoFolha, NoInterno
+
+
 class GeradorCodigo:
 
 	def __init__(self, arvoreSintatica):
@@ -20,6 +23,7 @@ class GeradorCodigo:
 		self.varNumPow = 0
 		self.varNumMinus = 0
 		# Crie mais atributos se achar necessário::
+		self.tabs = ''
 
 
 	def gerarPython(self):
@@ -47,7 +51,10 @@ class GeradorCodigo:
 
 		Percorra o nó varDeclarationList, passando o objeto varDeclaration para o método visitarVarDeclaration().
 		"""
-		pass
+		if int(noDeclarations.d.get("mod").valor) > 0:
+			self.mod = int(noDeclarations.d.get("mod").valor)
+		varDeclarationList = noDeclarations.d.get("varDeclarationList")
+		self.visitarVarDeclaration(varDeclarationList)
 	
 
 	def visitarVarDeclaration(self, noVarDeclaration):
@@ -56,7 +63,19 @@ class GeradorCodigo:
 		esses identificadores.
 		Se forem do tipo num, devem ser inicializados como zero. Se forem do tipo log, devem ser inicializados como False.
 		"""
-		pass
+		varDecList = noVarDeclaration
+		while varDecList != None:
+			varDec = varDecList.d.get("varDeclaration")
+			idList = varDec.d.get("identifierList")
+			tipo = varDec.d.get("type").valor
+			while idList != None:
+				currId = idList.d.get("id")
+				if tipo == "num":
+					self.saida += f"{currId.valor} = 0\n"
+				else:
+					self.saida += f"{currId.valor} = False\n"
+				idList = idList.d.get("prox")
+			varDecList = varDecList.d.get("prox")
 	
 	
 	def visitarBlock(self, noBlock):
@@ -82,7 +101,35 @@ class GeradorCodigo:
 
 			- um ifStatement: chama o método visitarifStatement(), passando o nó ifStatement como parâmetro.
 		"""
-		pass
+		self.numTabs += 1
+		self.tabs += '\t'
+		
+		stList = noBlock.d.get("statementList")
+		while stList != None:
+			currSt = stList.d.get("statement")
+			if currSt.op == "assignStatement":
+				id = currSt.d.get("id").valor
+				if 'inStatement' in currSt.d.keys():
+					self.saida += f"{id} = int(input())\n"
+				else: 
+					dir = self.visitarExpression(currSt.d.get("expression"))
+					if self.mod != "":
+						self.saida += f"{id} = {dir} % {self.mod} \n"
+					else:
+						self.saida += f"{id} = {dir}\n"
+					self.varNumSum = 0
+					self.varNumMul = 0
+					self.varNumPow = 0
+					self.varNumMinus = 0
+			elif currSt.op == "outStatement":
+				x = self.visitarExpression(currSt.d.get("expression"))
+				self.saida += f"print({x})\n"
+			elif currSt.op == "ifStatement":
+				self.visitarifStatement(currSt)
+			stList = stList.d.get("prox")
+		
+		tablist = list(self.tabs)
+		self.numTabs -= 1
 	
 
 	def visitarifStatement(self, noIfStatement):
@@ -98,8 +145,14 @@ class GeradorCodigo:
 
 		OBS: lembre-se de criar o código com o nível de indentação necessário.
 		"""
-		pass
-	
+		x = self.visitarExpression(noIfStatement.d.get("expression"))
+		self.saida += f"if {x}:\n"
+		self.visitarBlock(noIfStatement.d.get("blockIf"))
+		if noIfStatement.d.get("blockElse") != None:
+			self.saida += "else:\n"
+			self.visitarBlock(noIfStatement.d.get("blockElse"))
+
+		self.numTabs -= 1	
 
 	def visitarExpression(self, noExpression):
 		"""
@@ -117,8 +170,26 @@ class GeradorCodigo:
 		Para implementá-lo, crie outra variável temporária (sugestão: _TEMP_VAR_MOD) que armazena o resultado de b % a. Em seguida, faça com que
 		_TEMP_VAR_REL receba o resultado de _TEMP_VAR_MOD == 0.
 		"""
-		pass
-	
+		E = self.visitarSumExpression(noExpression.get("esq"))
+		if noExpression.get("oper") == None:
+			return E
+		else:
+			D = self.visitarSumExpression(noExpression.get("dir"))
+			oper = noExpression.get("oper")
+			if oper == "<>":
+				self.saida += "_TEMP_VAR_REL = " + E + "!=" + D + "\n"
+				return "_TEMP_VAR_REL"
+			elif oper == "|":
+				a = D % E
+				if a == 0:
+					self.saida += "_TEMP_VAR_MOD = True"  + "\n"
+				else:
+					self.saida += "_TEMP_VAR_MOD = False"  + "\n"
+				return "_TEMP_VAR_MOD"
+			else:
+				self.saida += "_TEMP_VAR_REL = " + E + noExpression.get("oper") + D  + "\n"
+				return "_TEMP_VAR_REL"
+
 	
 	def visitarSumExpression(self, no):
 		"""
@@ -138,7 +209,9 @@ class GeradorCodigo:
 
 				Em seguida, retorne uma string com nome da variável temporária.
 				"""
-				pass
+				self.varNumSum += 1
+				self.saida += "_TEMP_VAR_SUM" + str(self.varNumSum) + " = " + val1 + no.d.get("oper") + val2 + "\n"
+				return "_TEMP_VAR_SUM" + str(self.varNumSum)
 
 			elif no.op == "multiplicativeTerm":
 				"""
@@ -150,7 +223,20 @@ class GeradorCodigo:
 
 				Em seguida, retorne uma string com nome da variável temporária.
 				"""
-				pass
+				mul = no.d.get("oper")
+				self.varNumMul += 1
+				if mul == ".":
+					self.saida += "_TEMP_VAR_MUL" + str(self.varNumMul) + " = " + val1 + "*" + val2 + "\n"
+					return "_TEMP_VAR_MUL" + str(self.varNumMul)
+				elif mul == ":":
+					self.saida += "_TEMP_VAR_MUL" + str(self.varNumMul) + " = " + val1 + "//" + val2 + "\n"
+					return "_TEMP_VAR_MUL" + str(self.varNumMul)
+				elif mul == "%":
+					self.saida += "_TEMP_VAR_MUL" + str(self.varNumMul) + " = " + val1 + "%" + val2 + "\n"
+					return "_TEMP_VAR_MUL" + str(self.varNumMul)
+				else:
+					self.varNumMul -= 1
+					return "math.gcd(" + val1 + ", " + val2 +")"
 
 			elif no.op == "powerTerm":
 				"""
@@ -160,7 +246,9 @@ class GeradorCodigo:
 
 				Em seguida, retorne uma string com nome da variável temporária.
 				"""
-				pass
+				self.varNumPow += 1
+				self.saida += "_TEMP_VAR_POW" + str(self.varNumPow) + " = " + val1 + "**" + val2 + "\n"
+				return "_TEMP_VAR_POW" + str(self.varNumPow)
 				
 			elif no.op == "factor" and not no.get("expression"):
 				"""
@@ -174,9 +262,19 @@ class GeradorCodigo:
 				Caso contrário, se o factor é um log e seu valor é false, retorne a string "False";
 				Caso contrário, o factor é um inteiro, então retorne o seu valor.
 				"""
-				pass
+				if no.get("factor").op in ("id", "num") and no.get("sinal") == "-":
+					self.varNumMinus += 1
+					self.saida += "_TEMP_VAR_MINUS" + str(self.varNumMinus) + " = " + "-" + no.get("factor").valor + "\n"
+					return "_TEMP_VAR_MINUS" + str(self.varNumMinus)
+				elif no.get("factor").op == "log" and no.get("factor").valor == "true":
+					return "True"
+				elif no.get("factor").op == "log" and no.get("factor").valor == "false":
+					return "False"
+				else:
+					return no.get("factor").valor
 				
 			elif no.op == "factor" and no.get("expression"):
+				print(no.get("expression"))
 				sinal = no.get("sinal")
 				if sinal == "-":
 					temp = self.visitarExpression(no.get("expression"))
@@ -187,8 +285,14 @@ class GeradorCodigo:
 					recebe o resultado de: - temp.
 					Em seguida, retorne uma string com nome da variável temporária.
 					"""
+					self.varNumMinus += 1
+					self.saida += "_TEMP_VAR_MINUS" + str(self.varNumMinus) + " = -" + temp + "\n"
+					return "_TEMP_VAR_MINUS" + str(self.varNumMinus)
 					
 				else:
 					# Neste caso, não precisa fazer mais nada
 					return self.visitarExpression(no.get("expression"))
 
+if __name__ == '__main__':
+	oi = GeradorCodigo(NoInterno(op="alg", id=NoFolha(op="id", valor="exemplo9", linha=1), declarations=NoInterno(op="declarations", mod=NoFolha(op="number", valor="0", linha=0), varDeclarationList=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="num", linha=3), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="mdc", linha=3), prox=None)), prox=NoInterno(op="varDeclarationList", varDeclaration=NoInterno(op="varDeclaration", type=NoFolha(op="type", valor="log", linha=4), identifierList=NoInterno(op="identifierList", id=NoFolha(op="id", valor="resultado", linha=4), prox=None)), prox=None))), block=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="mdc", linha=6), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="multiplicativeTerm", oper="#", esq=NoInterno(op="multiplicativeTerm", oper="#", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="126", linha=6), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="162", linha=6), esq=None, dir=None)), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="180", linha=6), esq=None, dir=None)), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="ifStatement", expression=NoInterno(op="expression", oper=">=", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="id", valor="mdc", linha=7), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="18", linha=7), esq=None, dir=None)), blockIf=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="resultado", linha=8), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="true", linha=8), esq=None, dir=None), dir=None)), prox=None)), blockElse=NoInterno(op="block", statementList=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="resultado", linha=10), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="log", valor="false", linha=10), esq=None, dir=None), dir=None)), prox=None))), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="mdc", linha=12), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="multiplicativeTerm", oper="#", esq=NoInterno(op="powerTerm", oper="^", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=12), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="7", linha=12), esq=None, dir=None)), dir=NoInterno(op="powerTerm", oper="^", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=12), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="8", linha=12), esq=None, dir=None))), dir=None)), prox=NoInterno(op="statementList", statement=NoInterno(op="assignStatement", id=NoFolha(op="id", valor="mdc", linha=13), expression=NoInterno(op="expression", oper=None, esq=NoInterno(op="sumExpression", oper="+", esq=NoInterno(op="multiplicativeTerm", oper=".", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="1", linha=13), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="2", linha=13), esq=None, dir=None)), dir=NoInterno(op="multiplicativeTerm", oper=".", esq=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="3", linha=13), esq=None, dir=None), dir=NoInterno(op="factor", sinal="+", factor=NoFolha(op="num", valor="4", linha=13), esq=None, dir=None))), dir=None)), prox=None)))))))
+	print(oi.gerarPython())
