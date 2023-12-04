@@ -149,7 +149,7 @@ class GeradorCodigo:
 			self.visitarBlock(noIfStatement.d.get("blockElse"))
 
 		tablist = list(self.tabs)
-		tablist.pop()
+		tablist.pop(0)
 		self.tabs = "".join(tablist)
 		self.numTabs -= 1	
 
@@ -179,13 +179,8 @@ class GeradorCodigo:
 				self.saida += "_TEMP_VAR_REL = " + E + "!=" + D + "\n"
 				return "_TEMP_VAR_REL"
 			elif oper == "|":
-				print(self.saida)
-				a = D % E
-				if a == 0:
-					self.saida += "_TEMP_VAR_MOD = True"  + "\n"
-				else:
-					self.saida += "_TEMP_VAR_MOD = False"  + "\n"
-				return "_TEMP_VAR_MOD"
+				self.saida += f"_TEMP_VAR_MOD = {D} % {E}"  + "\n"
+				return "_TEMP_VAR_MOD == 0"
 			else:
 				self.saida += "_TEMP_VAR_REL = " + E + noExpression.get("oper") + D  + "\n"
 				return "_TEMP_VAR_REL"
