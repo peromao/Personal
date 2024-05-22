@@ -1,28 +1,39 @@
 import threading 
 
 soma = 0 
+_lock = threading.Lock()
 
-class thread(threading.Thread): 
+class thread_(threading.Thread): 
     def __init__(self, lista): 
         threading.Thread.__init__(self)
         self.lista = lista
     
     def run(self): 
-        with threading.Lock():
-            local_copy = soma
-            local_copy += self.lista.pop
-            soma = local_copy
+        global soma
+        local_value = sum(self.lista)
+        with _lock:
+            soma += local_value
 
-threads = list()
-lista = [i for i in range(100000)]
-midpoint = len(lista) // 2
-first_half = lista[:midpoint]
-second_half = lista[midpoint:]
-for index in range(2):
-    x = thread(lista)
-    threads.append(x)
-    x.start()
 
-for index, thread in enumerate(threads):
-    thread.join()
-print(soma)
+def calcular(lista):
+    threads = list()
+    meio = len(lista) // 2
+    lista1 = lista[:meio]
+    lista2 = lista[meio:]
+
+
+    for sublist in [lista1, lista2]:
+        thread = thread_(sublist)
+        threads.append(thread)
+        thread.start()
+
+    for thread in enumerate(threads):
+        thread.join()
+
+    print(soma)
+
+testes = [[i for i in range(1000)], [i for i in range(100)], [i for i in range(10)]]
+
+for teste in testes:
+    calcular(teste)
+    soma = 0
