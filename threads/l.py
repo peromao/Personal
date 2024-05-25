@@ -1,23 +1,14 @@
 import threading 
 
-# Variável global para armazenar a soma total
-soma = 0 
-# Objeto de lock para garantir acesso exclusivo à variável soma
-_lock = threading.Lock()
-
 class thread_(threading.Thread): 
-    def __init__(self, lista): 
+    def __init__(self, lista, resultado): 
         threading.Thread.__init__(self)
-        # Armazena a sub-lista que essa thread irá processar
         self.lista = lista
+        self.resultado = resultado
     
     def run(self): 
-        global soma
-        # Calcula a soma dos elementos da sub-lista
-        local_value = sum(self.lista)
-        with _lock:
-            soma += local_value
-
+        # Calcula a soma dos elementos da sub-lista e armazena no resultado fornecido
+        self.resultado[0] = sum(self.lista)
 
 def calcular(lista):
     # Cria as threads e divide a lista que vai para elas
@@ -25,10 +16,13 @@ def calcular(lista):
     meio = len(lista) // 2
     lista1 = lista[:meio]
     lista2 = lista[meio:]
+    # Variáveis de cada thread para colocar o resultado
+    resultado1 = [0]
+    resultado2 = [0]
 
-    # Cria e inicia uma thread para cada sub-lista
-    for sublist in [lista1, lista2]:
-        thread = thread_(sublist)
+    # Cria e inicia uma thread para cada sub-lista e para variavel de resultado
+    for sublist, resultado in zip([lista1, lista2], [resultado1, resultado2]):
+        thread = thread_(sublist, resultado)
         threads.append(thread)
         thread.start()
 
@@ -37,7 +31,7 @@ def calcular(lista):
         thread.join()
 
     # Printa a soma total
-    print(soma)
+    print(resultado1[0] + resultado2[0])
 
 testes = [[i for i in range(1000)], [i for i in range(100)], [i for i in range(10)]]
 
